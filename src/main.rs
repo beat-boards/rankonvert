@@ -53,7 +53,7 @@ fn main() {
             println!("Parsing info for {:#?}", &rated_map);
 
             let beatmap = Beatmap::from_beatsaver_url(&rated_map.download)
-                .expect("Invalid input BeatSaver url");
+                .expect("Can't download from provided url");
 
             let mut is_easy: u8 = 0;
             let mut is_normal: u8 = 0;
