@@ -1,5 +1,6 @@
 extern crate beatmap_parser;
 extern crate csv;
+extern crate ctrlc;
 extern crate serde;
 extern crate serde_json;
 extern crate threadpool;
@@ -11,7 +12,9 @@ use beatmap_parser::Beatmap;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
+use std::process;
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use threadpool::ThreadPool;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -47,13 +50,27 @@ fn main() {
     let input_contents = fs::read_to_string(&args[1]).expect("Invalid input file");
     let rated_maps: Vec<RatedMap> =
         serde_json::from_str(&input_contents).expect("Invalid input contents");
-    let map_count = rated_maps.len();
 
     let pool_size: usize = (&args[3]).parse().expect("Invalid pool size");
     let pool = ThreadPool::new(pool_size);
+
+    let writer = csv::Writer::from_path(&args[2]).expect("Invalid output file");
+    let writer = Arc::new(Mutex::new(writer));
+
     let (tx, rx) = mpsc::channel();
+    let map_count = rated_maps.len();
+
+    let ctrlc_writer = writer.clone();
+    ctrlc::set_handler(move || {
+        let mut w = ctrlc_writer.lock().expect("Can't lock writer");
+        (*w).flush().expect("Can't close output");
+
+        process::exit(0);
+    })
+    .expect("Can't set Ctrl-C handler");
 
     for rated_map in rated_maps {
+        let writer = writer.clone();
         let tx = tx.clone();
         pool.execute(move || {
             println!("Parsing info for {:#?}", &rated_map);
@@ -150,14 +167,16 @@ fn main() {
                 &rated_map.download, &rated_map_data
             );
 
-            tx.send(rated_map_data)
-                .expect("Can't send data through mpsc channel");
+            let mut w = writer.lock().expect("Can't lock writer");
+            (*w).serialize(&rated_map_data)
+                .expect("Can't write to output");
+            tx.send(true).expect("Can't send message to mpsc channel");
         });
     }
 
-    let mut writer = csv::Writer::from_path(&args[2]).expect("Invalid output file");
-    for rmd in rx {
-        writer.serialize(rmd).expect("Can't write to output");
+    for _ in 0..map_count {
+        rx.recv().expect("Can't read message from mpsc channel");
     }
-    writer.flush().expect("Can't close output")
+    let mut w = writer.lock().expect("Can't lock writer");
+    (*w).flush().expect("Can't close output");
 }
