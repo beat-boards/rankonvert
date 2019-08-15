@@ -1,6 +1,6 @@
 [package]
 name = "rankonvert"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Raphaël Thériault <raphael_theriault@outlook.com>"]
 edition = "2018"
 
