@@ -2,6 +2,7 @@ extern crate beatmap_parser;
 extern crate csv;
 extern crate serde;
 extern crate serde_json;
+extern crate threadpool;
 
 use beatmap_parser::difficulty::difficulty::note::NoteType;
 use beatmap_parser::info::info::difficulty_beatmap_set::difficulty_beatmap::DifficultyRank;
@@ -10,7 +11,8 @@ use beatmap_parser::Beatmap;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
-use std::thread;
+use std::sync::mpsc;
+use threadpool::ThreadPool;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct RatedMap {
@@ -38,18 +40,22 @@ struct RatedMapData {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() < 3 || args.len() > 4 {
+    if args.len() < 4 || args.len() > 5 {
         panic!("Invalid arguments");
     }
 
     let input_contents = fs::read_to_string(&args[1]).expect("Invalid input file");
     let rated_maps: Vec<RatedMap> =
         serde_json::from_str(&input_contents).expect("Invalid input contents");
+    let map_count = rated_maps.len();
 
-    let mut handles = Vec::new();
+    let pool_size: usize = (&args[3]).parse().expect("Invalid pool size");
+    let pool = ThreadPool::new(pool_size);
+    let (tx, rx) = mpsc::channel();
 
     for rated_map in rated_maps {
-        let handle = thread::spawn(move || {
+        let tx = tx.clone();
+        pool.execute(move || {
             println!("Parsing info for {:#?}", &rated_map);
 
             let beatmap = Beatmap::from_beatsaver_url(&rated_map.download)
@@ -144,17 +150,14 @@ fn main() {
                 &rated_map.download, &rated_map_data
             );
 
-            rated_map_data
+            tx.send(rated_map_data)
+                .expect("Can't send data through mpsc channel");
         });
-
-        handles.push(handle);
     }
 
     let mut writer = csv::Writer::from_path(&args[2]).expect("Invalid output file");
-    for handle in handles {
-        if let Ok(rmd) = handle.join() {
-            writer.serialize(rmd).expect("Can't write to output");
-        }
+    for rmd in rx.iter().take(map_count) {
+        writer.serialize(rmd).expect("Can't write to output");
     }
     writer.flush().expect("Can't close output")
 }
