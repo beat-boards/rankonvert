@@ -156,7 +156,7 @@ fn main() {
     }
 
     let mut writer = csv::Writer::from_path(&args[2]).expect("Invalid output file");
-    for rmd in rx.iter().take(map_count) {
+    for rmd in rx {
         writer.serialize(rmd).expect("Can't write to output");
     }
     writer.flush().expect("Can't close output")
