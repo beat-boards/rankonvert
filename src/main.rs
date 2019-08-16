@@ -5,7 +5,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate threadpool;
 
-use beatmap_parser::difficulty::difficulty::note::NoteType;
+use beatmap_parser::difficulty::difficulty::note::{CutDirection, NoteType};
 use beatmap_parser::info::info::difficulty_beatmap_set::difficulty_beatmap::DifficultyRank;
 use beatmap_parser::info::info::difficulty_beatmap_set::BeatmapCharacteristic;
 use beatmap_parser::Beatmap;
@@ -32,7 +32,9 @@ struct RatedMapData {
     note_jump_speed: f64,
     note_count: u32,
     bomb_count: u32,
+    dot_count: u32,
     notes_per_second: f64,
+    dots_per_note: f64,
     obstacle_count: u32,
 }
 
@@ -90,6 +92,7 @@ fn main() {
                 .expect("Can't find specified difficulty");
 
             let rating = rated_map.rating;
+
             let length = beatmap.length;
             let bpm = beatmap.info.beats_per_minute;
             let note_jump_speed = (&beatmap)
@@ -103,19 +106,25 @@ fn main() {
                 .find(|&x| x.difficulty_rank == difficulty_rank)
                 .expect("Can't find specified difficulty")
                 .note_jump_movement_speed;
-            let (note_count, bomb_count) = {
-                let mut i: u32 = 0;
-                let mut j: u32 = 0;
+
+            let (note_count, bomb_count, dot_count) = {
+                let (mut i, mut j, mut k) = (0, 0, 0);
                 for note in &difficulty.notes {
                     if note.note_type != NoteType::Bomb {
                         i += 1;
+                        if note.cut_direction == CutDirection::Dot {
+                            k += 1;
+                        }
                     } else {
                         j += 1;
                     }
                 }
-                (i, j)
+                (i, j, k)
             };
+
             let notes_per_second = note_count as f64 / length.clone();
+            let dots_per_note = dot_count as f64 / note_count as f64;
+
             let obstacle_count = (&difficulty).obstacles.len() as u32;
 
             let rated_map_data = RatedMapData {
@@ -125,7 +134,9 @@ fn main() {
                 note_jump_speed,
                 note_count,
                 bomb_count,
+                dot_count,
                 notes_per_second,
+                dots_per_note,
                 obstacle_count,
             };
 
