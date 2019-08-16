@@ -38,7 +38,8 @@ struct RatedMapData {
     dots_per_note: f64,
     obstacle_count: u32,
     entropy: f64,
-    entropy_no_position: f64,
+    entropy_no_dispersion: f64,
+    entropy_dispersion: f64,
 }
 
 fn calculate_entropy(hm: HashMap<String, u32>, n: f64) -> f64 {
@@ -120,7 +121,8 @@ fn main() {
                 .note_jump_movement_speed;
 
             let mut entropy_hm: HashMap<String, u32> = HashMap::new();
-            let mut entropy_no_position_hm: HashMap<String, u32> = HashMap::new();
+            let mut entropy_no_dispersion_hm: HashMap<String, u32> = HashMap::new();
+            let mut entropy_dispersion_hm: HashMap<String, u32> = HashMap::new();
 
             let (note_count, bomb_count, dot_count) = {
                 let (mut i, mut j, mut k) = (0, 0, 0);
@@ -138,13 +140,17 @@ fn main() {
                         "{:?}{:?}{:?}{:?}",
                         &note.note_type, &note.cut_direction, &note.line_index, &note.line_layer
                     );
-                    let ehm_nopos_key = format!("{:?}{:?}", &note.note_type, &note.cut_direction);
+                    let ehm_nd_key = format!("{:?}{:?}", &note.note_type, &note.cut_direction);
+                    let ehm_d_key = format!("{:?}{:?}", &note.line_index, &note.line_layer);
 
                     let ehm_value = (entropy_hm.get(&ehm_key).unwrap_or(&0)).clone() + 1;
                     entropy_hm.insert(ehm_key, ehm_value);
-                    let ehm_nopos_value =
-                        (entropy_no_position_hm.get(&ehm_nopos_key).unwrap_or(&0)).clone() + 1;
-                    entropy_no_position_hm.insert(ehm_nopos_key, ehm_nopos_value);
+                    let ehm_nd_value =
+                        (entropy_no_dispersion_hm.get(&ehm_nd_key).unwrap_or(&0)).clone() + 1;
+                    entropy_no_dispersion_hm.insert(ehm_nd_key, ehm_nd_value);
+                    let ehm_d_value =
+                        (entropy_dispersion_hm.get(&ehm_d_key).unwrap_or(&0)).clone() + 1;
+                    entropy_dispersion_hm.insert(ehm_d_key, ehm_d_value);
                 }
                 (i, j, k)
             };
@@ -155,11 +161,12 @@ fn main() {
             let obstacle_count = difficulty.obstacles.len() as u32;
 
             // TODO: Dispersion entropy
-            let (entropy, entropy_no_position) = {
+            let (entropy, entropy_no_dispersion, entropy_dispersion) = {
                 let n = difficulty.notes.len() as f64;
                 (
                     calculate_entropy(entropy_hm, n),
-                    calculate_entropy(entropy_no_position_hm, n),
+                    calculate_entropy(entropy_no_dispersion_hm, n),
+                    calculate_entropy(entropy_dispersion_hm, n),
                 )
             };
 
@@ -175,7 +182,8 @@ fn main() {
                 dots_per_note,
                 obstacle_count,
                 entropy,
-                entropy_no_position,
+                entropy_no_dispersion,
+                entropy_dispersion,
             };
 
             println!(
