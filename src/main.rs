@@ -27,11 +27,6 @@ struct RatedMap {
 #[derive(Debug, Serialize)]
 struct RatedMapData {
     rating: f64,
-    is_easy: u8,
-    is_normal: u8,
-    is_hard: u8,
-    is_expert: u8,
-    is_expert_plus: u8,
     length: f64,
     bpm: f64,
     note_jump_speed: f64,
@@ -78,36 +73,13 @@ fn main() {
             let beatmap = Beatmap::from_beatsaver_url(&rated_map.download)
                 .expect(&format!("Can't parse beatmap {}", &rated_map.download));
 
-            let mut is_easy: u8 = 0;
-            let mut is_normal: u8 = 0;
-            let mut is_hard: u8 = 0;
-            let mut is_expert: u8 = 0;
-            let mut is_expert_plus: u8 = 0;
-
             let difficulty_rank = match &rated_map.difficulty[..] {
-                "Easy" => {
-                    is_easy = 1;
-                    DifficultyRank::Easy
-                }
-                "Normal" => {
-                    is_normal = 1;
-                    DifficultyRank::Normal
-                }
-                "Hard" => {
-                    is_hard = 1;
-                    DifficultyRank::Hard
-                }
-                "Expert" => {
-                    is_expert = 1;
-                    DifficultyRank::Expert
-                }
-                "ExpertPlus" => {
-                    is_expert_plus = 1;
-                    DifficultyRank::ExpertPlus
-                }
-                _ => {
-                    panic!("Invalid input difficulty");
-                }
+                "Easy" => DifficultyRank::Easy,
+                "Normal" => DifficultyRank::Normal,
+                "Hard" => DifficultyRank::Hard,
+                "Expert" => DifficultyRank::Expert,
+                "ExpertPlus" => DifficultyRank::ExpertPlus,
+                _ => panic!("Invalid input difficulty"),
             };
 
             let difficulty = &beatmap
@@ -117,10 +89,10 @@ fn main() {
                 .get(&difficulty_rank)
                 .expect("Can't find specified difficulty");
 
-            let rating = &rated_map.rating;
-            let length = &beatmap.length;
-            let bpm = &beatmap.info.beats_per_minute;
-            let note_jump_speed = &beatmap
+            let rating = rated_map.rating;
+            let length = beatmap.length;
+            let bpm = beatmap.info.beats_per_minute;
+            let note_jump_speed = (&beatmap)
                 .info
                 .difficulty_beatmap_sets
                 .iter()
@@ -144,22 +116,17 @@ fn main() {
                 (i, j)
             };
             let notes_per_second = note_count as f64 / length.clone();
-            let obstacle_count = &difficulty.obstacles.len();
+            let obstacle_count = (&difficulty).obstacles.len() as u32;
 
             let rated_map_data = RatedMapData {
-                rating: rating.clone(),
-                is_easy,
-                is_normal,
-                is_hard,
-                is_expert,
-                is_expert_plus,
-                length: length.clone(),
-                bpm: bpm.clone(),
-                note_jump_speed: note_jump_speed.clone(),
+                rating,
+                length,
+                bpm,
+                note_jump_speed,
                 note_count,
                 bomb_count,
                 notes_per_second,
-                obstacle_count: obstacle_count.clone() as u32,
+                obstacle_count,
             };
 
             println!(
