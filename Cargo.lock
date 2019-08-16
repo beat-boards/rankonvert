@@ -975,7 +975,7 @@ dependencies = [
 
 [[package]]
 name = "rankonvert"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "beatmap_parser 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "csv 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
