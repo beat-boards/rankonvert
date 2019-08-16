@@ -154,6 +154,7 @@ fn main() {
 
             let obstacle_count = difficulty.obstacles.len() as u32;
 
+            // TODO: Dispersion entropy
             let (entropy, entropy_no_position) = {
                 let n = difficulty.notes.len() as f64;
                 (
