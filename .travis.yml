@@ -1,0 +1,9 @@
+language: rust
+cache: cargo
+script:
+  - cargo build --release
+  - target/release/rankonvert resources/input.json output.csv 4 &
+  - PID=$!
+  - sleep 4m
+  - kill $PID
+  - cat output.csv
