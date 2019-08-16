@@ -1,13 +1,13 @@
 [package]
 name = "rankonvert"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Raphaël Thériault <raphael_theriault@outlook.com>"]
 edition = "2018"
 
 [dependencies]
 beatmap_parser = { version = "0.1.4", features = [ "beatsaver", "audio" ] }
 csv = "1"
-ctrlc = { version = "3", features = ["termination"] }
+ctrlc = { version = "3", features = [ "termination" ] }
 serde = { version = "1", features = [ "derive" ] }
 serde_json = "1"
 threadpool = "1"
