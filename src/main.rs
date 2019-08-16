@@ -10,6 +10,7 @@ use beatmap_parser::info::info::difficulty_beatmap_set::difficulty_beatmap::Diff
 use beatmap_parser::info::info::difficulty_beatmap_set::BeatmapCharacteristic;
 use beatmap_parser::Beatmap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::process;
@@ -36,6 +37,7 @@ struct RatedMapData {
     notes_per_second: f64,
     dots_per_note: f64,
     obstacle_count: u32,
+    entropy: f64,
 }
 
 fn main() {
@@ -107,6 +109,8 @@ fn main() {
                 .expect("Can't find specified difficulty")
                 .note_jump_movement_speed;
 
+            let mut entropy_hm: HashMap<String, u32> = HashMap::new();
+
             let (note_count, bomb_count, dot_count) = {
                 let (mut i, mut j, mut k) = (0, 0, 0);
                 for note in &difficulty.notes {
@@ -118,6 +122,14 @@ fn main() {
                     } else {
                         j += 1;
                     }
+
+                    let ehm_key = format!(
+                        "{:?}{:?}{:?}{:?}",
+                        &note.note_type, &note.cut_direction, &note.line_index, &note.line_layer
+                    );
+
+                    let ehm_value = (entropy_hm.get(&ehm_key).unwrap_or(&0)).clone() + 1;
+                    entropy_hm.insert(ehm_key, ehm_value);
                 }
                 (i, j, k)
             };
@@ -125,7 +137,19 @@ fn main() {
             let notes_per_second = note_count as f64 / length.clone();
             let dots_per_note = dot_count as f64 / note_count as f64;
 
-            let obstacle_count = (&difficulty).obstacles.len() as u32;
+            let obstacle_count = difficulty.obstacles.len() as u32;
+
+            let entropy = {
+                let n = difficulty.notes.len();
+                let mut h = 0.0;
+
+                for x in entropy_hm.values() {
+                    let p = *x as f64 / n as f64;
+                    h -= p * p.log2();
+                }
+
+                h
+            };
 
             let rated_map_data = RatedMapData {
                 rating,
@@ -138,6 +162,7 @@ fn main() {
                 notes_per_second,
                 dots_per_note,
                 obstacle_count,
+                entropy,
             };
 
             println!(
